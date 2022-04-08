@@ -96,7 +96,7 @@ while read -r str_subdomain; do
     str_domainname="${str_subdomain}.${str_main_domainname}"
 
     # curl the subdomain name and save the content length of the response.
-    str_subdomain_request_responce_data="""$(curl -Is "${str_protocol}://${str_domainname}" --resolve "${str_domainname}:${str_port}:${str_ip}" -H "HOSTNAME: ${str_domainname}")"""
+    str_subdomain_request_responce_data="""$(curl -Is "${str_protocol}://${str_domainname}:${str_port}" --resolve "${str_domainname}:${str_port}:${str_ip}" -H "HOSTNAME: ${str_domainname}")"""
 
     # Extract the content length from the response.
     int_subdomain_request_responce_length="""$(echo "${str_subdomain_request_responce_data}" | grep 'Content-Length' | awk -F' ' '{print $2}')"""
