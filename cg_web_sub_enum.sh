@@ -54,7 +54,7 @@ declare -a ary_userAgents=(
 )
 
 # Command usage for this script.
-str_commandUsage="${str_scriptsName} -i <ip> -d <main domain name> {-w <wordlist> -f <HTTP Status Code> -h -v} \n
+str_commandUsage="${str_scriptsName} -i <ip> -d <main domain name> {-w <wordlist> -f <HTTP Status Code> -p <port#> -s -h -v} \n
     -i <ip> - IP address to scan.\n
     -d <main domain name> - Main domain name to scan.\n
     -w <wordlist> - Wordlist to use for sub-domain brute-force.\n
