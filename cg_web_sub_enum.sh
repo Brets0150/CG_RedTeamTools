@@ -2,13 +2,13 @@
 #
 # Author: Bret.s
 # Last Update: 4/12/2022
-# Version: 1.1
+# Version: 1.2
 # Made In: Kali 2 Rolling
 # OS Tested: Kali 2 Rolling
 # Purpose: When you find a webserver but you don't know what sub-domains are up, this script will scan the IPs and find the sub-domains.
 #          This is usefull on internal networks engaments when there is no DNS, or to find find old web app that admin forgot to remove.
 #
-# Command Line Usage: ./cg_web_sub_enum.sh"
+# Command Line Usage: ./cg_web_sub_enum.sh -h"
 ##
 # Note:
 ##
@@ -61,7 +61,9 @@ str_commandUsage="${str_scriptsName} -i <ip> -d <main domain name> {-w <wordlist
     -f <HTTP Status Codes> - HTTP Status Codes to filter out. Filter multiple status codes with comma seperated.\n
     -h - Display this help message.\n
     -v - Display script version.\n
-    example: ./cg_web_sub_enum.sh -i 10.1.0.12 -d example.com -w subdomains.txt -f 502,404\n"
+    -s - Connect to target using HTTPS. HTTP is used if this option is omitted. \n
+    -p - Port to connect to.\n
+    example: ./cg_web_sub_enum.sh -i 10.1.0.12 -d example.com -w subdomains.txt -f 502,404 -p 8443 -s \n"
 
 # User provided command line flags to set options for -i str_ip, -d str_main_domainname, -w str_dictionaryFile, -h str_help.
 # -i str_ip - single IP address.
@@ -70,7 +72,9 @@ str_commandUsage="${str_scriptsName} -i <ip> -d <main domain name> {-w <wordlist
 # -h str_help - Help menu.
 # -f str_statusCodeFilter - Filter out status codes. Filter multiple status codes with comma seperated.
 # -v str_version - Version of script.
-while getopts "i:d:w:hvf:" opt; do
+# -s str_protocol - Connect to target using HTTPS. HTTP is used if this option is omitted.
+# -p str_port - Port to use for scanning.
+while getopts "i:d:w:f:p:shv" opt; do
   case $opt in
     i)
       str_ip="${OPTARG}"
@@ -81,6 +85,15 @@ while getopts "i:d:w:hvf:" opt; do
     w)
       str_dictionaryFile="${OPTARG}"
       ;;
+    f)
+      str_statusCodeFilter="${OPTARG}"
+      ;;
+    p)
+      str_port="${OPTARG}"
+      ;;
+    s)
+      str_protocol="https"
+      ;;
     h)
       echo -e "Command Line Usage: ${str_commandUsage}"
       exit 0
@@ -88,9 +101,6 @@ while getopts "i:d:w:hvf:" opt; do
     v)
       echo "Version: ${str_version}"
       exit 0
-      ;;
-    f)
-      str_statusCodeFilter="${OPTARG}"
       ;;
     \?)
       echo "Invalid option: -${OPTARG}" >&2
@@ -151,38 +161,38 @@ if [ "${str_statusCodeFilter}" != '' ]; then
     done
 fi
 
-# Ask the user to select from the options HTTP or HTTPS. If none given default to HTTP.
-echo "Please select from the options HTTP or HTTPS."
-echo "Default is HTTP."
-echo "1. HTTP"
-echo "2. HTTPS"
-read -r -p "Option: " str_protocol
-# case statement to set the protocol
-case "${str_protocol}" in
-    1) str_protocol="http";;
-    2) str_protocol="https";;
-    *) echo "Using Default HTTP";str_protocol="http";;
-esac
+# Check if str_protocol is set.
+if [ "${str_protocol}" == '' ]; then
+    str_protocol="http"
+fi
 
 # if the protocol is not HTTP or HTTPS exit.
 if [ "${str_protocol}" != 'http' ] && [ "${str_protocol}" != 'https' ]; then echo "Protocol must be HTTP or HTTPS..";exit 1;fi
 
 # if the protocol is HTTP, ask user what port to use. If none given default to 80.
 if [ "${str_protocol}" == 'http' ]; then
-    echo "Please provide a port number for HTTP."
-    echo "Default is 80."
-    read -r -p "Port number: " str_port
-    if [ "${str_port}" == '' ]; then str_port="80";fi
+    # Check if str_port is set.
+    if [ "${str_port}" == '' ]; then
+        # Ask the user to provide a port number. If none given default to 80.
+        echo "Please provide a port number for HTTP."
+        echo "Default is 80."
+        read -r -p "Port number: " str_port
+        if [ "${str_port}" == '' ]; then str_port="80";fi
+    fi
     # if the port is not a number exit.
     if ! [[ "${str_port}" =~ ^[0-9]+$ ]]; then echo "Port must be a number..";exit 1;fi
 fi
 
 # if the protocol is HTTPS, ask user what port to use. If none given default to 443.
 if [ "${str_protocol}" == 'https' ]; then
-    echo "Please provide a port number for HTTPS."
-    echo "Default is 443."
-    read -r -p "Port number: " str_port
-    if [ "${str_port}" == '' ]; then str_port="443";fi
+    # Check if str_port is set.
+    if [ "${str_port}" == '' ]; then
+        # Ask the user to provide a port number. If none given default to 443.
+        echo "Please provide a port number for HTTPS."
+        echo "Default is 443."
+        read -r -p "Port number: " str_port
+        if [ "${str_port}" == '' ]; then str_port="443";fi
+    fi
     # if the port is not a number exit.
     if ! [[ "${str_port}" =~ ^[0-9]+$ ]]; then echo "Port must be a number..";exit 1;fi
 fi
