@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 #
 # Author: Bret.s
-# Last Update: 4/5/2022
-# Version: 1.0
+# Last Update: 4/12/2022
+# Version: 1.1
 # Made In: Kali 2 Rolling
 # OS Tested: Kali 2 Rolling
 # Purpose: When you find a webserver but you don't know what sub-domains are up, this script will scan the IPs and find the sub-domains.
@@ -14,30 +14,75 @@
 ##
 # Version Change Notes.
 # 1.0 - Done main purpose of script.
+# 1.1 - Added argument to specify settings, allowing Dictionary set via command line. Fixed Header option.
 ##
 
-# Set varables from command line arguments
-str_ip="${1}"
-str_date="$(date +'%s')"
-str_main_domainname="${2}"
-
+# Set basic varables for script.
+str_scriptsName="${0}"
+# Set current date and time logging.
+str_date="$(date +'%D - %T')"
 # Get this scripts current directory
 str_script_dir="$(dirname "${0}")"
-
 # Log file names
 str_outFile="${str_script_dir}/${str_ip}_${str_main_domainname}_scan-log"
+#set default subdomain Dictionary file.
+str_subDomainDefaultDict="/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-110000.txt"
+# Command usage for this script.
+str_commandUsage="${str_scriptsName} -i <ip> -d <main domain name> {-w <wordlist>}"
+
+# User provided command line flags to set options for -i str_ip, -d str_main_domainname, -w str_dictionaryFile, -h str_help.
+# -i str_ip - single IP address.
+# -d str_main_domainname - Main domain name to scan.
+# -w str_dictionaryFile - Wordlist to use for sub-domain enumeration.
+# -h str_help - Help menu.
+while getopts ":i:d:w:h" opt; do
+  case $opt in
+    i)
+      str_ip="${OPTARG}"
+      ;;
+    d)
+      str_main_domainname="${OPTARG}"
+      ;;
+    w)
+      str_dictionaryFile="${OPTARG}"
+      ;;
+    h)
+      echo "Command Line Usage: ${str_commandUsage}"
+      exit 0
+      ;;
+    \?)
+      echo "Invalid option: -${OPTARG}" >&2
+      echo "Command Line Usage: ${str_commandUsage}"
+      exit 1
+      ;;
+    :)
+      echo "Option -${OPTARG} requires an argument." >&2
+      echo "Command Line Usage: ${str_commandUsage}"
+      exit 1
+      ;;
+  esac
+done
 
 # make sure we have an IP
-if [ "${str_ip}" == '' ]; then echo "missing IP range..";exit 1;fi
+if [ "${str_ip}" == '' ]; then echo -e "Missing IP range...\n ${str_commandUsage}";exit 1;fi
 
-#make sure we have a domain name
-if [ "${str_main_domainname}" == '' ]; then echo "missing domain name..";exit 1;fi
+# Test it the IP is a valid IP address.
+if [[ ! "${str_ip}" =~ ^[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}$ ]]; then echo -e "Invalid IP address...\n ${str_commandUsage}";exit 1;fi
 
-# Ask the user to provide a dictionary file from subdomain enumeration. If none given default to "/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-110000.txt".
-echo "Please provide a dictionary file for subdomain enumeration."
-echo "Default is /usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-110000.txt"
-read -r -p "Dictionary file: " str_dictionaryFile
-if [ "${str_dictionaryFile}" == '' ]; then str_dictionaryFile="/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-110000.txt";fi
+# make sure we have a domain name
+if [ "${str_main_domainname}" == '' ]; then echo -e "missing domain name...\n ${str_commandUsage}";exit 1;fi
+
+# check if str_dictionaryFile is set.
+if [ "${str_dictionaryFile}" == '' ]; then
+    # Ask the user to provide a dictionary file from subdomain enumeration. If none given default to str_subDomainDefaultDict.
+    echo "Please provide a dictionary file for subdomain enumeration."
+    echo "Default is ${str_subDomainDefaultDict}"
+    read -r -p "Dictionary file: " str_dictionaryFile
+    if [ "${str_dictionaryFile}" == '' ]; then str_dictionaryFile="${str_subDomainDefaultDict}";fi
+fi
+
+# echo the dictionary file name being used.
+echo "Using dictionary file: ${str_dictionaryFile}"
 
 # chcek if the dictionary file exists, else exit.
 if [ ! -f "${str_dictionaryFile}" ]; then echo "Dictionary file does not exist..";exit 1;fi
@@ -96,7 +141,7 @@ while read -r str_subdomain; do
     str_domainname="${str_subdomain}.${str_main_domainname}"
 
     # curl the subdomain name and save the content length of the response.
-    str_subdomain_request_responce_data="""$(curl -Is "${str_protocol}://${str_domainname}:${str_port}" --resolve "${str_domainname}:${str_port}:${str_ip}" -H "HOSTNAME: ${str_domainname}")"""
+    str_subdomain_request_responce_data="""$(curl -Is "${str_protocol}://${str_domainname}:${str_port}" --resolve "${str_domainname}:${str_port}:${str_ip}" -H "HOST: ${str_domainname}")"""
 
     # Extract the content length from the response.
     int_subdomain_request_responce_length="""$(echo "${str_subdomain_request_responce_data}" | grep 'Content-Length' | awk -F' ' '{print $2}')"""
@@ -116,6 +161,9 @@ while read -r str_subdomain; do
     echo -ne "Progress: ${int_counter}/${int_dictionaryFileLines}\r"
 
 done < "${str_dictionaryFile}"
+
+# echo the script completed at the current time.
+echo "Sub domain brute force completed. End Time $(date +'%D - %T')"
 
 # exit script
 exit 0
