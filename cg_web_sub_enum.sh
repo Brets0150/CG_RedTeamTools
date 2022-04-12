@@ -27,8 +27,6 @@ str_scriptsName="${0}"
 str_date="$(date +'%D - %T')"
 # Get this scripts current directory
 str_script_dir="$(dirname "${0}")"
-# Log file names
-str_outFile="${str_script_dir}/${str_ip}_${str_main_domainname}_scan-log"
 #set default subdomain Dictionary file.
 str_subDomainDefaultDict="/usr/share/wordlists/seclists/Discovery/DNS/subdomains-top1million-110000.txt"
 
@@ -208,6 +206,9 @@ str_ip_request_responce_data="""$( curl -Is -A "${str_randomUserAgent}" "${str_p
 
 # Use curl to get the Content-Length of IP request only
 int_ip_request_responce_length="""$( grep 'Content-Length' <<<"${str_ip_request_responce_data}" | awk -F' ' '{print $2}')"""
+
+# Log file names
+str_outFile="${str_script_dir}/${str_ip}_${str_main_domainname}_scan-log"
 
 # set a counter to 0
 int_counter=0
